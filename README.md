@@ -14,7 +14,7 @@ NetBridge is a powerful tool for converting Cisco Modeling Labs (CML) and Virtua
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/netbridge.git
+git clone https://github.com/daniissac/netbridge.git
 cd netbridge
 pip install -e .
 ```
