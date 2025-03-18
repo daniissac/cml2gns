@@ -48,7 +48,7 @@ class Converter:
         with open(input_file, 'r') as f:
             content = f.read(1000)  # Read first 1000 characters
             
-        if "topology:" in content and "nodes:" in content:
+        if "topology:" in content or "nodes:" in content:
             # Basic CML structure check
             logger.info(f"Detected CML format for {input_file}")
             return "cml"
