@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology xmlns="http://www.cisco.com/VIRL">
+  <node name="router1" type="SIMPLE" subtype="iosv">
+    <extensions>
+      <entry key="config">hostname Router1
+!
+interface GigabitEthernet0/0
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+!
+end</entry>
+    </extensions>
+    <position x="100" y="100"/>
+    <interface id="0" name="GigabitEthernet0/0"/>
+  </node>
+  <node name="router2" type="SIMPLE" subtype="iosv">
+    <extensions>
+      <entry key="config">hostname Router2
+!
+interface GigabitEthernet0/0
+ ip address 192.168.1.2 255.255.255.0
+ no shutdown
+!
+end</entry>
+    </extensions>
+    <position x="300" y="100"/>
+    <interface id="0" name="GigabitEthernet0/0"/>
+  </node>
+  <node name="switch1" type="SIMPLE" subtype="iosvl2">
+    <extensions>
+      <entry key="config">hostname Switch1
+!
+vlan 10
+ name DATA
+!
+end</entry>
+    </extensions>
+    <position x="200" y="200"/>
+    <interface id="0" name="GigabitEthernet0/1"/>
+    <interface id="1" name="GigabitEthernet0/2"/>
+  </node>
+  <connection src="router1" dst="switch1" srcPort="GigabitEthernet0/0" dstPort="GigabitEthernet0/1"/>
+  <connection src="router2" dst="switch1" srcPort="GigabitEthernet0/0" dstPort="GigabitEthernet0/2"/>
+</topology>

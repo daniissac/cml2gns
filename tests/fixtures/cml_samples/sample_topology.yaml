@@ -1,0 +1,58 @@
+---
+topology:
+  name: "Sample CML Topology"
+  description: "A sample topology for testing"
+  nodes:
+    router1:
+      label: "Router 1"
+      node_definition: "iosv"
+      x: 100
+      y: 100
+      configuration: |
+        hostname Router1
+        !
+        interface GigabitEthernet0/0
+         ip address 192.168.1.1 255.255.255.0
+         no shutdown
+        !
+        end
+      
+    router2:
+      label: "Router 2"
+      node_definition: "iosv"
+      x: 300
+      y: 100
+      configuration: |
+        hostname Router2
+        !
+        interface GigabitEthernet0/0
+         ip address 192.168.1.2 255.255.255.0
+         no shutdown
+        !
+        end
+      
+    switch1:
+      label: "Switch 1"
+      node_definition: "iosvl2"
+      x: 200
+      y: 200
+      configuration: |
+        hostname Switch1
+        !
+        vlan 10
+         name DATA
+        !
+        end
+  
+  links:
+    link1:
+      node_a: router1
+      interface_a: GigabitEthernet0/0
+      node_b: switch1
+      interface_b: GigabitEthernet0/1
+    
+    link2:
+      node_a: router2
+      interface_a: GigabitEthernet0/0
+      node_b: switch1
+      interface_b: GigabitEthernet0/2
