@@ -1,0 +1,72 @@
+---
+lab:
+  title: "Sample CML List Topology"
+  description: "A list-format topology for testing CML 2.5+ support"
+  nodes:
+    - id: "r1"
+      label: "Router1"
+      node_definition: "iosv"
+      x: 100
+      y: 100
+      ram: 512
+      cpus: 1
+      configuration: |
+        hostname Router1
+        !
+        interface GigabitEthernet0/0
+         ip address 192.168.1.1 255.255.255.0
+         no shutdown
+        !
+        end
+      interfaces:
+        - id: "i0"
+          label: "Loopback0"
+          slot: 0
+          type: "loopback"
+        - id: "i1"
+          label: "GigabitEthernet0/0"
+          slot: 1
+          type: "physical"
+    - id: "r2"
+      label: "Router2"
+      node_definition: "iosv"
+      x: 300
+      y: 100
+      configuration: |
+        hostname Router2
+        !
+        end
+      interfaces:
+        - id: "i0"
+          label: "Loopback0"
+          slot: 0
+          type: "loopback"
+        - id: "i1"
+          label: "GigabitEthernet0/0"
+          slot: 1
+          type: "physical"
+    - id: "s1"
+      label: "Switch1"
+      node_definition: "iosvl2"
+      x: 200
+      y: 200
+      interfaces:
+        - id: "i0"
+          label: "GigabitEthernet0/1"
+          slot: 0
+          type: "physical"
+        - id: "i1"
+          label: "GigabitEthernet0/2"
+          slot: 1
+          type: "physical"
+  links:
+    - id: "l1"
+      n1: "r1"
+      i1: "i1"
+      n2: "s1"
+      i2: "i0"
+    - id: "l2"
+      n1: "r2"
+      i1: "i1"
+      n2: "s1"
+      i2: "i1"

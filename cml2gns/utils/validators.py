@@ -1,5 +1,5 @@
 """
-Validation utilities for NetBridge.
+Validation utilities for cml2gns.
 """
 import logging
 

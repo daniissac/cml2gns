@@ -4,16 +4,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="netbridge",
+    name="cml2gns",
     version="0.1.0",
     author="Dani ISsac",
     author_email="reachme@daniissac.com",
     description="Convert CML/VIRL YAML files to GNS3 projects",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/daniissac/netbridge",
+    url="https://github.com/daniissac/cml2gns",
     project_urls={
-        "Bug Tracker": "https://github.com/daniissac/netbridge/issues",
+        "Bug Tracker": "https://github.com/daniissac/cml2gns/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -30,12 +30,14 @@ setup(
     install_requires=[
         "click>=8.0.0",
         "pyyaml>=6.0",
-        "jinja2>=3.0.0",
-        "jsonschema>=4.0.0",
+        "defusedxml>=0.7.0",
     ],
+    extras_require={
+        "dev": ["pytest>=7.0"],
+    },
     entry_points={
         "console_scripts": [
-            "netbridge=netbridge.cli:main",
+            "cml2gns=cml2gns.cli:main",
         ],
     },
 )

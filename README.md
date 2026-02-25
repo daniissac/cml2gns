@@ -1,6 +1,6 @@
-# NetBridge: CML to GNS3 Converter
+# cml2gns: CML to GNS3 Converter
 
-NetBridge is a powerful tool for converting Cisco Modeling Labs (CML) and Virtual Internet Routing Lab (VIRL) YAML topology files into GNS3 projects. This tool enables network engineers to seamlessly transition between different network simulation platforms.
+cml2gns is a powerful tool for converting Cisco Modeling Labs (CML) and Virtual Internet Routing Lab (VIRL) YAML topology files into GNS3 projects. This tool enables network engineers to seamlessly transition between different network simulation platforms.
 
 ## Features
 
@@ -15,8 +15,8 @@ NetBridge is a powerful tool for converting Cisco Modeling Labs (CML) and Virtua
 
 ```bash
 #  Build from source 
-git clone https://github.com/daniissac/netbridge.git
-cd netbridge
+git clone https://github.com/daniissac/cml2gns.git
+cd cml2gns
 pip install -e .
 ```
 
@@ -24,18 +24,18 @@ pip install -e .
 
 ```bash
 # Convert a CML file to GNS3
-netbridge convert --input my_topology.yaml --output my_gns3_project
+cml2gns convert --input my_topology.yaml --output my_gns3_project
 
 # Convert with custom node mappings
-netbridge convert --input my_topology.yaml --output my_gns3_project --mapping my_mappings.json
+cml2gns convert --input my_topology.yaml --output my_gns3_project --mapping my_mappings.json
 
 # Get help
-netbridge --help
+cml2gns --help
 ```
 
 ## Configuration
 
-NetBridge uses a configuration file to map CML/VIRL node types to GNS3 appliances. The default mappings include common Cisco devices, but you can create custom mappings:
+cml2gns uses a configuration file to map CML/VIRL node types to GNS3 appliances. The default mappings include common Cisco devices, but you can create custom mappings:
 
 ```json
 {
@@ -55,7 +55,6 @@ NetBridge uses a configuration file to map CML/VIRL node types to GNS3 appliance
 - Python 3.8 or higher
 - PyYAML
 - Click
-- Jinja2
 
 ## Contributing
 
