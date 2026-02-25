@@ -1,0 +1,12 @@
+name: lab-test
+topology:
+  nodes:
+    r1:
+      kind: cisco_iosv
+    r2:
+      kind: cisco_iosv
+    sw1:
+      kind: bridge
+  links:
+    - endpoints: ["r1:eth1", "sw1:eth1"]
+    - endpoints: ["r2:eth1", "sw1:eth2"]

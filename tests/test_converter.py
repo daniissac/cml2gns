@@ -6,8 +6,8 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from netbridge.converter import Converter
-from netbridge.utils.config import DEFAULT_NODE_MAPPINGS
+from cml2gns.converter import Converter
+from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
 
 
 class TestConverter:

@@ -1,11 +1,15 @@
 """
 Parser for VIRL (XML) topology files.
+
+Uses defusedxml for safe XML parsing (DTD/XXE protection).
 """
 import re
-import xml.etree.ElementTree as ET
 import logging
 from pathlib import Path
-from netbridge.models.virl_model import VIRLTopology, VIRLNode, VIRLLink
+
+from defusedxml import ElementTree as ET
+
+from cml2gns.models.virl_model import VIRLTopology, VIRLNode, VIRLLink
 
 logger = logging.getLogger(__name__)
 
@@ -31,49 +35,72 @@ class VIRLParser:
         logger.info(f"Parsing VIRL file: {file_path}")
         
         try:
-            # Parse XML
-            tree = ET.parse(file_path)
+            tree = ET.parse(str(file_path))
             root = tree.getroot()
             
-            # Determine XML namespace if present
-            ns = {}
-            match = re.match(r'\{(.*)\}', root.tag)
-            if match:
-                ns['virl'] = match.group(1)
-                nsmap = {'virl': ns['virl']}
+            ns_match = re.match(r'\{(.*)\}', root.tag)
+            if ns_match:
+                ns_uri = ns_match.group(1)
+                nsmap = {'virl': ns_uri}
             else:
                 nsmap = None
-            
-            # Extract topology metadata
+
+            def _find(parent, *local_names):
+                """Find all child elements matching any of the given local names."""
+                results = []
+                for name in local_names:
+                    if nsmap:
+                        results.extend(parent.findall(f'./virl:{name}', nsmap))
+                    else:
+                        results.extend(parent.findall(f'./{name}'))
+                return results
+
+            def _find_one(parent, *local_names):
+                """Find the first child element matching any of the given local names."""
+                for name in local_names:
+                    if nsmap:
+                        elem = parent.find(f'./virl:{name}', nsmap)
+                    else:
+                        elem = parent.find(f'./{name}')
+                    if elem is not None:
+                        return elem
+                return None
+
             topology = VIRLTopology(
                 name=Path(file_path).stem,
-                description=self._get_text(root, './virl:annotation', nsmap) or '',
-                notes=''
+                description='',
+                notes='',
             )
-            
-            # Parse nodes (in VIRL they might be called 'node' or 'device')
-            for node_elem in root.findall('./virl:node', nsmap) + root.findall('./virl:device', nsmap):
+            annotation = _find_one(root, 'annotation')
+            if annotation is not None and annotation.text:
+                topology.description = annotation.text
+
+            for node_elem in _find(root, 'node', 'device'):
                 node_id = node_elem.get('id') or node_elem.get('name')
                 if not node_id:
                     continue
                 
-                node_type = node_elem.get('type') or node_elem.get('subtype')
+                node_type = node_elem.get('subtype') or node_elem.get('type')
                 label = node_elem.get('name') or node_elem.get('label') or node_id
                 
-                # Get position if available
                 x, y = 0, 0
-                pos_elem = node_elem.find('./virl:position', nsmap)
+                pos_elem = _find_one(node_elem, 'position')
                 if pos_elem is not None:
                     x = float(pos_elem.get('x', 0))
                     y = float(pos_elem.get('y', 0))
                 
-                # Get configuration if available
                 config = ''
-                config_elem = node_elem.find('./virl:configuration', nsmap) or node_elem.find('./virl:config', nsmap)
+                config_elem = _find_one(node_elem, 'configuration', 'config')
                 if config_elem is not None:
                     config = config_elem.text or ''
                 
-                # Create node object
+                if not config:
+                    for entry in _find(node_elem, 'extensions'):
+                        for child in _find(entry, 'entry'):
+                            if child.get('key') == 'config':
+                                config = child.text or ''
+                                break
+
                 node = VIRLNode(
                     id=node_id,
                     label=label,
@@ -84,27 +111,32 @@ class VIRLParser:
                     image=node_elem.get('image', '')
                 )
                 
-                # Add interfaces to node
-                for intf_elem in node_elem.findall('./virl:interface', nsmap):
+                for intf_elem in _find(node_elem, 'interface'):
                     intf_id = intf_elem.get('id') or intf_elem.get('name')
                     if intf_id:
                         node.add_interface(intf_id)
                 
                 topology.add_node(node)
             
-            # Parse links
-            for link_elem in root.findall('./virl:link', nsmap) + root.findall('./virl:connection', nsmap):
+            for link_elem in _find(root, 'link', 'connection'):
                 link_id = link_elem.get('id')
                 
-                # Links connect two interfaces
                 endpoints = []
-                for endpoint_elem in link_elem.findall('./virl:endpoint', nsmap) + link_elem.findall('./virl:interface', nsmap):
+                for endpoint_elem in _find(link_elem, 'endpoint', 'interface'):
                     node_id = endpoint_elem.get('node') or endpoint_elem.get('device')
                     intf_id = endpoint_elem.get('interface') or endpoint_elem.get('port')
                     if node_id:
                         endpoints.append((node_id, intf_id))
                 
-                # Create link if we have two endpoints
+                if not endpoints:
+                    src = link_elem.get('src')
+                    dst = link_elem.get('dst')
+                    if src and dst:
+                        endpoints = [
+                            (src, link_elem.get('srcPort')),
+                            (dst, link_elem.get('dstPort')),
+                        ]
+                
                 if len(endpoints) >= 2:
                     link = VIRLLink(
                         id=link_id or f"link_{len(topology.links) + 1}",
@@ -124,11 +156,3 @@ class VIRLParser:
         except Exception as e:
             logger.error(f"Error parsing VIRL file {file_path}: {str(e)}")
             raise ValueError(f"Error parsing VIRL file: {str(e)}")
-    
-    def _get_text(self, elem, xpath, nsmap):
-        """Helper to get text from an XML element."""
-        try:
-            sub_elem = elem.find(xpath, nsmap)
-            return sub_elem.text if sub_elem is not None else None
-        except:
-            return None
