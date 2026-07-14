@@ -2,6 +2,10 @@
 
 cml2gns is a powerful tool for converting Cisco Modeling Labs (CML) and Virtual Internet Routing Lab (VIRL) YAML topology files into GNS3 projects. This tool enables network engineers to seamlessly transition between different network simulation platforms.
 
+[![CI](https://github.com/daniissac/cml2gns/actions/workflows/python-publish.yml/badge.svg)](https://github.com/daniissac/cml2gns/actions/workflows/python-publish.yml)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## Features
 
 - Convert CML/VIRL YAML topology files to GNS3 project files
@@ -31,6 +35,23 @@ cml2gns convert --input my_topology.yaml --output my_gns3_project --mapping my_m
 
 # Get help
 cml2gns --help
+```
+
+Validate a topology without writing project files:
+
+```bash
+cml2gns validate --input my_topology.yaml
+```
+
+Example validation output:
+
+```text
+File type:      CML
+Topology name:  branch-lab
+Nodes:          6
+Links:          7
+All node types have mappings.
+Validation passed.
 ```
 
 ## Configuration

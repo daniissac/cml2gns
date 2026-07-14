@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="cml2gns",
     version="0.1.0",
-    author="Dani ISsac",
+    author="Dani Issac",
     author_email="reachme@daniissac.com",
     description="Convert CML/VIRL YAML files to GNS3 projects",
     long_description=long_description,
