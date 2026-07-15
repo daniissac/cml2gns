@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cml2gns"
 dynamic = ["version"]
-description = "Translate and deploy network lab topologies across CML, GNS3, VIRL, and containerlab"
+description = "Convert Cisco CML and VIRL lab topologies into GNS3 projects or deploy them directly to a GNS3 server"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -54,6 +54,7 @@ cml2gns = "cml2gns.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/daniissac/cml2gns"
+Package = "https://pypi.org/project/cml2gns/"
 Issues = "https://github.com/daniissac/cml2gns/issues"
 Source = "https://github.com/daniissac/cml2gns"
 
