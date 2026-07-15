@@ -1,6 +1,7 @@
 """
 Tests for the GNS3 generator.
 """
+
 import json
 import pytest
 from pathlib import Path
@@ -11,17 +12,30 @@ from cml2gns.utils.node_mappings import map_nodes
 from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
 
 
-class TestGNS3Generator:
+PROJECT_ID = "11111111-1111-4111-8111-111111111111"
 
+
+class TestGNS3Generator:
     def _build_topology(self):
         topo = CMLTopology(name="gen_test")
-        n1 = CMLNode(id="r1", label="Router1", node_type="iosv", x=10, y=20,
-                      configuration="hostname R1")
+        n1 = CMLNode(
+            id="r1",
+            label="Router1",
+            node_type="iosv",
+            x=10,
+            y=20,
+            configuration="hostname R1",
+        )
         n2 = CMLNode(id="s1", label="Switch1", node_type="iosvl2", x=30, y=40)
         topo.add_node(n1)
         topo.add_node(n2)
-        link = CMLLink(id="l1", node1_id="r1", interface1="GigabitEthernet0/0",
-                        node2_id="s1", interface2="GigabitEthernet0/1")
+        link = CMLLink(
+            id="l1",
+            node1_id="r1",
+            interface1="GigabitEthernet0/0",
+            node2_id="s1",
+            interface2="GigabitEthernet0/1",
+        )
         topo.add_link(link)
         map_nodes(topo, DEFAULT_NODE_MAPPINGS)
         return topo
@@ -32,7 +46,7 @@ class TestGNS3Generator:
 
     def test_generate_creates_project_file(self, generator, tmp_path):
         topo = self._build_topology()
-        result = generator.generate(topo, tmp_path, project_id="test-pid")
+        result = generator.generate(topo, tmp_path, project_id=PROJECT_ID)
         project_file = Path(result["project_file"])
         assert project_file.exists()
         assert project_file.suffix == ".gns3"
@@ -49,15 +63,17 @@ class TestGNS3Generator:
 
     def test_generated_json_structure(self, generator, tmp_path):
         topo = self._build_topology()
-        result = generator.generate(topo, tmp_path, project_id="test-pid")
+        result = generator.generate(topo, tmp_path, project_id=PROJECT_ID)
         with open(result["project_file"]) as f:
             data = json.load(f)
 
-        assert data["project_id"] == "test-pid"
+        assert data["project_id"] == PROJECT_ID
         assert data["name"] == "gen_test"
         assert data["type"] == "topology"
         assert len(data["topology"]["nodes"]) == 2
         assert len(data["topology"]["links"]) == 1
+        assert all("node_type" in node for node in data["topology"]["nodes"])
+        assert all("type" not in node for node in data["topology"]["nodes"])
 
         node_names = {n["name"] for n in data["topology"]["nodes"]}
         assert node_names == {"Router1", "Switch1"}
@@ -84,10 +100,42 @@ class TestGNS3Generator:
         topo = CMLTopology(name="broken_link")
         n1 = CMLNode(id="r1", label="R1", node_type="iosv")
         topo.add_node(n1)
-        link = CMLLink(id="l1", node1_id="r1", interface1="g0/0",
-                        node2_id="missing", interface2="g0/0")
+        link = CMLLink(
+            id="l1",
+            node1_id="r1",
+            interface1="g0/0",
+            node2_id="missing",
+            interface2="g0/0",
+        )
         topo.add_link(link)
         map_nodes(topo, DEFAULT_NODE_MAPPINGS)
         # The generator should skip the invalid link but not crash
         result = generator.generate(topo, tmp_path)
         assert result["link_count"] == 0
+
+    def test_portable_uses_official_extension(self, generator, tmp_path):
+        topo = self._build_topology()
+        result = generator.generate(topo, tmp_path / "project", portable=True)
+        portable = Path(result["portable_file"])
+        assert portable.suffix == ".gns3project"
+        assert portable.exists()
+
+    def test_project_and_config_names_are_path_safe(self, generator, tmp_path):
+        topo = self._build_topology()
+        topo.name = "branch/lab"
+        topo.nodes["r1"].label = "edge/router"
+        result = generator.generate(topo, tmp_path)
+        assert Path(result["project_file"]).name == "branch_lab.gns3"
+        assert list((tmp_path / "configs").glob("edge_router_*.cfg"))
+
+    def test_invalid_project_does_not_leave_partial_output(self, generator, tmp_path):
+        topo = CMLTopology(name="invalid")
+        topo.add_node(CMLNode(id="n1", label="same", node_type="iosv"))
+        topo.add_node(CMLNode(id="n2", label="same", node_type="iosv"))
+        map_nodes(topo, DEFAULT_NODE_MAPPINGS)
+        output = tmp_path / "not-created"
+
+        with pytest.raises(ValueError, match="Duplicate node name"):
+            generator.generate(topo, output)
+
+        assert not output.exists()

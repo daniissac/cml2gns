@@ -6,6 +6,7 @@ when converting between CML/VIRL and GNS3 environments.  The transforms
 handle common differences such as interface naming conventions and
 management-plane adjustments.
 """
+
 import re
 import logging
 
@@ -18,7 +19,7 @@ class ConfigTransformer:
     """
 
     def __init__(self, rules=None):
-        self.rules = rules or list(DEFAULT_RULES)
+        self.rules = list(DEFAULT_RULES) if rules is None else list(rules)
 
     def transform(self, config_text, node_type=None, direction="cml_to_gns3"):
         """
@@ -45,8 +46,7 @@ class ConfigTransformer:
 class TransformRule:
     """A single regex-based config transformation rule."""
 
-    def __init__(self, name, pattern, replacement, node_types=None,
-                 directions=None):
+    def __init__(self, name, pattern, replacement, node_types=None, directions=None):
         self.name = name
         self._pattern = re.compile(pattern, re.MULTILINE)
         self._replacement = replacement
@@ -69,36 +69,9 @@ class TransformRule:
 
 DEFAULT_RULES = [
     TransformRule(
-        name="loopback_management_strip",
-        pattern=r'^interface\s+Management0/0\n(?:.*\n)*?!',
-        replacement="!",
-        node_types={"iosv", "iosvl2", "csr1000v", "cat8000v"},
-        directions={"cml_to_gns3"},
-    ),
-    TransformRule(
         name="hostname_normalize",
         pattern=r'^hostname\s+"([^"]+)"',
-        replacement=r'hostname \1',
+        replacement=r"hostname \1",
         directions={"cml_to_gns3", "gns3_to_cml"},
-    ),
-    TransformRule(
-        name="enable_secret_placeholder",
-        pattern=r'^enable secret \d+ \S+',
-        replacement='enable secret 0 cisco',
-        directions={"cml_to_gns3"},
-    ),
-    TransformRule(
-        name="nxos_feature_telnet",
-        pattern=r'^(feature telnet)',
-        replacement=r'! \1  (disabled for GNS3)',
-        node_types={"nxosv", "nxosv9000"},
-        directions={"cml_to_gns3"},
-    ),
-    TransformRule(
-        name="cml_platform_specific_strip",
-        pattern=r'^platform\s+.*$',
-        replacement='',
-        node_types={"csr1000v", "cat8000v", "iosxrv9000"},
-        directions={"cml_to_gns3"},
     ),
 ]

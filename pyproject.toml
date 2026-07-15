@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cml2gns"
+dynamic = ["version"]
+description = "Translate and deploy network lab topologies across CML, GNS3, VIRL, and containerlab"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Dani Issac", email = "reachme@daniissac.com" },
+]
+keywords = [
+  "cisco-cml",
+  "containerlab",
+  "gns3",
+  "network-automation",
+  "topology",
+  "virl",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: System :: Networking",
+]
+dependencies = [
+  "click>=8.0",
+  "defusedxml>=0.7",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "pytest>=7",
+  "ruff>=0.8",
+  "twine>=5",
+]
+
+[project.scripts]
+cml2gns = "cml2gns.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/daniissac/cml2gns"
+Issues = "https://github.com/daniissac/cml2gns/issues"
+Source = "https://github.com/daniissac/cml2gns"
+
+[tool.setuptools.dynamic]
+version = { attr = "cml2gns.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["cml2gns*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -4,6 +4,7 @@ ASCII topology visualizer.
 Produces a human-readable text diagram of nodes, links, and basic
 layout information for quick terminal-based topology preview.
 """
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,14 +29,12 @@ def visualize_topology(topology):
 
 
 def _header(topology):
-    name = getattr(topology, 'name', 'Unknown')
-    desc = getattr(topology, 'description', '')
+    name = getattr(topology, "name", "Unknown")
+    desc = getattr(topology, "description", "")
     parts = [f"Topology: {name}"]
     if desc:
         parts.append(f"  Description: {desc}")
-    parts.append(
-        f"  Nodes: {len(topology.nodes)}  Links: {len(topology.links)}"
-    )
+    parts.append(f"  Nodes: {len(topology.nodes)}  Links: {len(topology.links)}")
     border = "=" * max(len(p) for p in parts)
     return "\n".join([border] + parts + [border])
 
@@ -44,15 +43,17 @@ def _node_table(topology):
     rows = [("Label", "Type", "X", "Y", "Interfaces")]
     rows.append(("-" * 20, "-" * 18, "-" * 5, "-" * 5, "-" * 12))
     for node in topology.nodes.values():
-        iface_count = len(getattr(node, 'interfaces', []))
-        ntype = getattr(node, 'node_type', '') or ''
-        rows.append((
-            str(node.label)[:20],
-            ntype[:18],
-            str(int(getattr(node, 'x', 0))),
-            str(int(getattr(node, 'y', 0))),
-            str(iface_count),
-        ))
+        iface_count = len(getattr(node, "interfaces", []))
+        ntype = getattr(node, "node_type", "") or ""
+        rows.append(
+            (
+                str(node.label)[:20],
+                ntype[:18],
+                str(int(getattr(node, "x", 0))),
+                str(int(getattr(node, "y", 0))),
+                str(iface_count),
+            )
+        )
     col_widths = [max(len(r[i]) for r in rows) for i in range(5)]
     lines = []
     for row in rows:

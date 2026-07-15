@@ -1,16 +1,44 @@
 """
 Configuration utilities for cml2gns.
 """
+
 import json
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
+
+_GNS3_NODE_TYPES = {
+    "atm_switch",
+    "cloud",
+    "docker",
+    "dynamips",
+    "ethernet_hub",
+    "ethernet_switch",
+    "frame_relay_switch",
+    "iou",
+    "nat",
+    "qemu",
+    "traceng",
+    "virtualbox",
+    "vmware",
+    "vpcs",
+}
+_GNS3_CONSOLE_TYPES = {
+    "http",
+    "https",
+    "none",
+    "spice",
+    "spice+agent",
+    "telnet",
+    "vnc",
+}
 
 # GNS3 version-to-revision mapping
 GNS3_VERSION_REVISIONS = {
     "2.0": {"revision": 7, "default_version": "2.0.0"},
     "2.1": {"revision": 8, "default_version": "2.1.0"},
-    "2.2": {"revision": 9, "default_version": "2.2.47"},
+    "2.2": {"revision": 9, "default_version": "2.2.59"},
 }
 
 # Default node mappings from CML/VIRL node types to GNS3 templates
@@ -364,18 +392,18 @@ DEFAULT_NODE_MAPPINGS = {
 def load_config(file_path):
     """
     Load configuration from a JSON file.
-    
+
     Args:
         file_path (str): Path to the configuration file
-        
+
     Returns:
         dict: Configuration data
-        
+
     Raises:
         ValueError: If the file cannot be parsed as valid JSON
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             config = json.load(f)
         return config
     except json.JSONDecodeError as e:
@@ -384,3 +412,52 @@ def load_config(file_path):
     except Exception as e:
         logger.error(f"Error loading configuration from {file_path}: {str(e)}")
         raise ValueError(f"Error loading configuration: {str(e)}")
+
+
+def validate_node_mappings(mappings, require_template=False):
+    """Validate the user-facing node-mapping structure."""
+    if not isinstance(mappings, dict):
+        raise ValueError("Node mappings must be a JSON object")
+
+    for node_type, mapping in mappings.items():
+        if not isinstance(node_type, str) or not node_type.strip():
+            raise ValueError("Node mapping keys must be non-empty strings")
+        if not isinstance(mapping, dict):
+            raise ValueError(f"Mapping for '{node_type}' must be a JSON object")
+
+        template = mapping.get("gns3_template")
+        if require_template and template is None:
+            raise ValueError(f"Mapping for '{node_type}' is missing gns3_template")
+        if template is not None and (
+            not isinstance(template, str) or not template.strip()
+        ):
+            raise ValueError(
+                f"gns3_template for '{node_type}' must be a non-empty string"
+            )
+
+        compute_type = mapping.get("compute_type")
+        if compute_type is not None and compute_type not in _GNS3_NODE_TYPES:
+            raise ValueError(
+                f"Unsupported compute_type '{compute_type}' for '{node_type}'"
+            )
+
+        console_type = mapping.get("console_type")
+        if console_type is not None and console_type not in _GNS3_CONSOLE_TYPES:
+            raise ValueError(
+                f"Unsupported console_type '{console_type}' for '{node_type}'"
+            )
+
+        properties = mapping.get("properties")
+        if properties is not None and not isinstance(properties, dict):
+            raise ValueError(f"properties for '{node_type}' must be a JSON object")
+
+        template_id = mapping.get("template_id")
+        if template_id is not None:
+            try:
+                uuid.UUID(str(template_id))
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise ValueError(
+                    f"template_id for '{node_type}' must be a UUID"
+                ) from exc
+
+    return True

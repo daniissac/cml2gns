@@ -2,8 +2,7 @@
 Tests for the new features: diff, containerlab, visualization,
 GNS3 API client, drawings, and config transformation.
 """
-import json
-import os
+
 import pytest
 import tempfile
 from pathlib import Path
@@ -29,13 +28,13 @@ def _make_topology(name, nodes_spec, links_spec):
     for nid, label, ntype in nodes_spec:
         t.add_node(CMLNode(id=nid, label=label, node_type=ntype))
     for lid, n1, i1, n2, i2 in links_spec:
-        t.add_link(CMLLink(id=lid, node1_id=n1, interface1=i1,
-                           node2_id=n2, interface2=i2))
+        t.add_link(
+            CMLLink(id=lid, node1_id=n1, interface1=i1, node2_id=n2, interface2=i2)
+        )
     return t
 
 
 class TestTopologyDiff:
-
     def test_identical_topologies(self):
         t = _make_topology("T", [("n1", "R1", "iosv")], [])
         result = diff_topologies(t, t)
@@ -63,11 +62,12 @@ class TestTopologyDiff:
         assert result["nodes_changed"][0]["label"] == "R1"
 
     def test_link_added(self):
-        ta = _make_topology("T",
-            [("n1", "R1", "iosv"), ("n2", "R2", "iosv")], [])
-        tb = _make_topology("T",
+        ta = _make_topology("T", [("n1", "R1", "iosv"), ("n2", "R2", "iosv")], [])
+        tb = _make_topology(
+            "T",
             [("n1", "R1", "iosv"), ("n2", "R2", "iosv")],
-            [("l1", "n1", "eth0", "n2", "eth0")])
+            [("l1", "n1", "eth0", "n2", "eth0")],
+        )
         result = diff_topologies(ta, tb)
         assert len(result["links_added"]) == 1
 
@@ -84,7 +84,6 @@ class TestTopologyDiff:
 
 
 class TestContainerlabParser:
-
     def test_parse_sample(self):
         parser = ContainerlabParser()
         topo = parser.parse(CLAB_SAMPLE)
@@ -105,9 +104,24 @@ class TestContainerlabParser:
         link = list(topo.links.values())[0]
         assert link.interface1 == "eth1"
 
+    def test_relative_startup_config_and_default_kind(self, tmp_path):
+        (tmp_path / "r1.cfg").write_text("hostname r1\n")
+        topology_file = tmp_path / "relative.clab.yml"
+        topology_file.write_text(
+            "name: relative\n"
+            "topology:\n"
+            "  defaults:\n"
+            "    kind: cisco_iosv\n"
+            "  nodes:\n"
+            "    r1:\n"
+            "      startup-config: r1.cfg\n"
+        )
+        topo = ContainerlabParser().parse(topology_file)
+        assert topo.nodes["r1"].node_type == "iosv"
+        assert topo.nodes["r1"].configuration == "hostname r1\n"
+
 
 class TestContainerlabGenerator:
-
     def test_roundtrip(self):
         parser = ContainerlabParser()
         topo = parser.parse(CLAB_SAMPLE)
@@ -134,13 +148,23 @@ class TestContainerlabGenerator:
         finally:
             out_path.unlink(missing_ok=True)
 
+    def test_duplicate_labels_are_rejected(self, tmp_path):
+        topo = _make_topology(
+            "duplicates",
+            [("n1", "same", "linux"), ("n2", "same", "linux")],
+            [],
+        )
+        with pytest.raises(ValueError, match="duplicate node label"):
+            ContainerlabGenerator().generate(topo, tmp_path / "out.clab.yml")
+
 
 class TestVisualizer:
-
     def test_basic_visualization(self):
-        topo = _make_topology("TestNet",
+        topo = _make_topology(
+            "TestNet",
             [("n1", "R1", "iosv"), ("n2", "R2", "iosv")],
-            [("l1", "n1", "Gi0/0", "n2", "Gi0/0")])
+            [("l1", "n1", "Gi0/0", "n2", "Gi0/0")],
+        )
         output = visualize_topology(topo)
         assert "TestNet" in output
         assert "R1" in output
@@ -160,7 +184,6 @@ class TestVisualizer:
 
 
 class TestAnnotations:
-
     def test_notes_become_drawings(self):
         topo = CMLTopology(name="T", notes="This is a note")
         drawings = extract_drawings(topo)
@@ -181,7 +204,6 @@ class TestAnnotations:
 
 
 class TestGNS3Drawing:
-
     def test_from_text(self):
         d = GNS3Drawing.from_text("Hello World", x=10, y=20)
         assert "Hello World" in d.svg
@@ -202,7 +224,6 @@ class TestGNS3Drawing:
 
 
 class TestConfigTransformer:
-
     def test_hostname_normalize(self):
         t = ConfigTransformer()
         result = t.transform('hostname "myrouter"\n', direction="cml_to_gns3")
@@ -213,11 +234,11 @@ class TestConfigTransformer:
         assert t.transform("") == ""
         assert t.transform(None) is None
 
-    def test_rules_respect_node_type(self):
+    def test_unrelated_config_is_preserved(self):
         t = ConfigTransformer()
         config = "feature telnet\nhostname nx"
         result = t.transform(config, node_type="nxosv", direction="cml_to_gns3")
-        assert "disabled for GNS3" in result
+        assert result == config
 
     def test_rules_skip_wrong_node_type(self):
         t = ConfigTransformer()
@@ -225,8 +246,13 @@ class TestConfigTransformer:
         result = t.transform(config, node_type="iosv", direction="cml_to_gns3")
         assert "disabled for GNS3" not in result
 
-    def test_enable_secret_replaced(self):
+    def test_enable_secret_is_preserved(self):
         t = ConfigTransformer()
         config = "enable secret 5 $1$abc$xyz\n"
         result = t.transform(config, direction="cml_to_gns3")
-        assert "enable secret 0 cisco" in result
+        assert result == config
+
+    def test_explicit_empty_rule_list_is_a_no_op(self):
+        t = ConfigTransformer(rules=[])
+        config = 'hostname "router"\n'
+        assert t.transform(config) == config

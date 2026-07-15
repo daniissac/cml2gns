@@ -1,15 +1,13 @@
 """
 Tests for node mapping utilities.
 """
-import pytest
 
 from cml2gns.models.cml_model import CMLTopology, CMLNode
 from cml2gns.utils.node_mappings import map_nodes
-from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
+from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS, validate_node_mappings
 
 
 class TestMapNodes:
-
     def _topology_with_types(self, *types):
         topo = CMLTopology(name="test")
         for i, t in enumerate(types):
@@ -58,6 +56,9 @@ class TestMapNodes:
         assert topo.nodes["n1"].gns3_template == "qemu"
 
     def test_all_default_mappings_have_required_fields(self):
+        assert (
+            validate_node_mappings(DEFAULT_NODE_MAPPINGS, require_template=True) is True
+        )
         for node_type, mapping in DEFAULT_NODE_MAPPINGS.items():
             assert "gns3_template" in mapping, f"{node_type} missing gns3_template"
             assert "console_type" in mapping, f"{node_type} missing console_type"

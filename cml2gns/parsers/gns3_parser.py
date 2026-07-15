@@ -4,11 +4,17 @@ Parser for GNS3 project (.gns3) JSON files.
 Produces a CMLTopology so the same topology model can be used for
 reverse conversion back to CML YAML.
 """
+
 import json
 import logging
 from pathlib import Path
 
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
+from cml2gns.models.cml_model import (
+    CMLTopology,
+    CMLNode,
+    CMLLink,
+    CMLInterface,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +48,7 @@ class GNS3Parser:
         logger.info(f"Parsing GNS3 file: {file_path}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             name = data.get("name", file_path.stem)
@@ -55,7 +61,10 @@ class GNS3Parser:
             for node_data in topo_section.get("nodes", []):
                 node_id = node_data.get("node_id", "")
                 label = node_data.get("name", node_id)
-                compute_type = node_data.get("type", "qemu")
+                # ``node_type`` is the field used by the GNS3 project schema.
+                # Fall back to the old, incorrect ``type`` key so projects
+                # created by cml2gns 0.1 can still be read and repaired.
+                compute_type = node_data.get("node_type", node_data.get("type", "qemu"))
                 node_type = _COMPUTE_TO_CML.get(compute_type, "linux")
 
                 node = CMLNode(
@@ -79,6 +88,9 @@ class GNS3Parser:
 
                 iface1 = self._format_interface(ep1)
                 iface2 = self._format_interface(ep2)
+
+                self._ensure_interface(node_id_map.get(ep1.get("node_id")), ep1, iface1)
+                self._ensure_interface(node_id_map.get(ep2.get("node_id")), ep2, iface2)
 
                 link = CMLLink(
                     id=link_id,
@@ -105,3 +117,21 @@ class GNS3Parser:
         adapter = endpoint.get("adapter_number", 0)
         port = endpoint.get("port_number", 0)
         return f"GigabitEthernet{adapter}/{port}"
+
+    @staticmethod
+    def _ensure_interface(node, endpoint, label):
+        """Add a deterministic CML interface referenced by a GNS3 link."""
+        if node is None:
+            return
+        adapter = int(endpoint.get("adapter_number", 0))
+        for existing in node.interfaces:
+            if getattr(existing, "label", None) == label:
+                return
+        node.add_interface(
+            CMLInterface(
+                id=f"i{len(node.interfaces)}",
+                label=label,
+                slot=adapter,
+                iface_type="physical",
+            )
+        )

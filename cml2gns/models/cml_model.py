@@ -7,7 +7,7 @@ class CMLTopology:
     """
     Model for a CML topology.
     """
-    
+
     def __init__(self, name=None, description=None, notes=None):
         self.name = name or "Unnamed Topology"
         self.description = description or ""
@@ -15,24 +15,50 @@ class CMLTopology:
         self.nodes = {}  # id -> CMLNode
         self.links = {}  # id -> CMLLink
         self.annotations = []  # list of annotation dicts or strings
-    
+
     def add_node(self, node):
         """Add a node to the topology."""
+        if node.id in self.nodes:
+            raise ValueError(f"Duplicate node ID: {node.id}")
         self.nodes[node.id] = node
-    
+
     def add_link(self, link):
         """Add a link to the topology."""
+        if link.id in self.links:
+            raise ValueError(f"Duplicate link ID: {link.id}")
         self.links[link.id] = link
 
     def to_dict(self):
         """Serialize the topology back to CML YAML-compatible dict."""
+        links = []
+        for link in self.links.values():
+            node1 = self.nodes.get(link.node1_id)
+            node2 = self.nodes.get(link.node2_id)
+            links.append(
+                {
+                    "id": link.id,
+                    "n1": link.node1_id,
+                    "i1": (
+                        node1.get_interface_id(link.interface1)
+                        if node1
+                        else link.interface1
+                    ),
+                    "n2": link.node2_id,
+                    "i2": (
+                        node2.get_interface_id(link.interface2)
+                        if node2
+                        else link.interface2
+                    ),
+                }
+            )
         return {
             "lab": {
                 "title": self.name,
                 "description": self.description,
                 "notes": self.notes,
+                "version": "0.3.0",
                 "nodes": [node.to_dict() for node in self.nodes.values()],
-                "links": [link.to_dict() for link in self.links.values()],
+                "links": links,
             }
         }
 
@@ -69,11 +95,23 @@ class CMLNode:
     """
     Model for a CML node.
     """
-    
-    def __init__(self, id, label=None, node_type=None, x=0, y=0,
-                 configuration=None, image_definition=None,
-                 ram=None, cpus=None, boot_disk_size=None,
-                 data_volume=None, cpu_limit=None, tags=None):
+
+    def __init__(
+        self,
+        id,
+        label=None,
+        node_type=None,
+        x=0,
+        y=0,
+        configuration=None,
+        image_definition=None,
+        ram=None,
+        cpus=None,
+        boot_disk_size=None,
+        data_volume=None,
+        cpu_limit=None,
+        tags=None,
+    ):
         self.id = id
         self.label = label or id
         self.node_type = node_type
@@ -88,11 +126,11 @@ class CMLNode:
         self.cpu_limit = cpu_limit
         self.tags = tags or []
         self.interfaces = []  # list of CMLInterface or str
-        
+
         # Will be filled in during node mapping
         self.gns3_template = None
         self.console_type = None
-    
+
     def add_interface(self, interface):
         """Add an interface to the node (CMLInterface or str)."""
         self.interfaces.append(interface)
@@ -106,6 +144,18 @@ class CMLNode:
             elif str(iface) == str(interface_id):
                 return str(iface)
         return str(interface_id) if interface_id is not None else None
+
+    def get_interface_id(self, interface_ref):
+        """Resolve an interface label back to its CML interface ID."""
+        for iface in self.interfaces:
+            if isinstance(iface, CMLInterface):
+                if str(iface.id) == str(interface_ref):
+                    return iface.id
+                if iface.label and str(iface.label) == str(interface_ref):
+                    return iface.id
+            elif str(iface) == str(interface_ref):
+                return iface
+        return interface_ref
 
     def to_dict(self):
         d = {
@@ -122,6 +172,12 @@ class CMLNode:
             d["ram"] = self.ram
         if self.cpus is not None:
             d["cpus"] = self.cpus
+        if self.boot_disk_size is not None:
+            d["boot_disk_size"] = self.boot_disk_size
+        if self.data_volume is not None:
+            d["data_volume"] = self.data_volume
+        if self.cpu_limit is not None:
+            d["cpu_limit"] = self.cpu_limit
         if self.interfaces:
             d["interfaces"] = [
                 iface.to_dict() if isinstance(iface, CMLInterface) else {"id": iface}
@@ -139,7 +195,7 @@ class CMLLink:
     """
     Model for a CML link.
     """
-    
+
     def __init__(self, id, node1_id, interface1, node2_id, interface2):
         self.id = id
         self.node1_id = node1_id

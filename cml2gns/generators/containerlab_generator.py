@@ -1,6 +1,7 @@
 """
 Generator for containerlab .clab.yml topology files.
 """
+
 import yaml
 import logging
 from pathlib import Path
@@ -40,9 +41,12 @@ class ContainerlabGenerator:
 
         nodes_section = {}
         for node in topology.nodes.values():
-            kind = _CML_TO_KIND.get(
-                getattr(node, 'node_type', '') or '', "linux"
-            )
+            if node.label in nodes_section:
+                raise ValueError(
+                    f"Cannot export containerlab topology: duplicate node label "
+                    f"'{node.label}'"
+                )
+            kind = _CML_TO_KIND.get(getattr(node, "node_type", "") or "", "linux")
             nodes_section[node.label] = {"kind": kind}
 
         links_section = []
@@ -51,9 +55,7 @@ class ContainerlabGenerator:
             n2 = node_label.get(link.node2_id, link.node2_id)
             i1 = link.interface1 or "eth0"
             i2 = link.interface2 or "eth0"
-            links_section.append({
-                "endpoints": [f"{n1}:{i1}", f"{n2}:{i2}"]
-            })
+            links_section.append({"endpoints": [f"{n1}:{i1}", f"{n2}:{i2}"]})
 
         clab = {
             "name": topology.name,
@@ -64,7 +66,7 @@ class ContainerlabGenerator:
         }
 
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             yaml.dump(clab, f, default_flow_style=False, sort_keys=False)
 
         return {

@@ -1,6 +1,7 @@
 """
 Generator for CML YAML topology files from parsed GNS3 projects.
 """
+
 import logging
 from pathlib import Path
 
@@ -30,9 +31,10 @@ class CMLGenerator:
 
         data = topology.to_dict()
 
-        with open(output_file, 'w', encoding='utf-8') as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False,
-                      allow_unicode=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            yaml.dump(
+                data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+            )
 
         logger.info(f"Wrote CML topology to {output_file}")
         return {

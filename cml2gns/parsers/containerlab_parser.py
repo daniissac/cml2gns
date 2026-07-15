@@ -1,6 +1,7 @@
 """
 Parser for containerlab .clab.yml topology files.
 """
+
 import yaml
 import logging
 from pathlib import Path
@@ -40,7 +41,7 @@ class ContainerlabParser:
         logger.info(f"Parsing containerlab file: {file_path}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             if not isinstance(data, dict):
@@ -52,6 +53,10 @@ class ContainerlabParser:
             topo_section = data.get("topology", {})
             kinds = topo_section.get("kinds", {})
             defaults = topo_section.get("defaults", {})
+            if not isinstance(kinds, dict):
+                kinds = {}
+            if not isinstance(defaults, dict):
+                defaults = {}
 
             nodes_data = topo_section.get("nodes", {})
             if not isinstance(nodes_data, dict):
@@ -62,8 +67,10 @@ class ContainerlabParser:
                 if not isinstance(node_data, dict):
                     node_data = {}
 
-                kind = node_data.get("kind", "")
+                kind = node_data.get("kind") or defaults.get("kind", "")
                 kind_defaults = kinds.get(kind, {}) if kind else {}
+                if not isinstance(kind_defaults, dict):
+                    kind_defaults = {}
 
                 node_type = _KIND_TO_CML.get(kind, kind or "linux")
 
@@ -71,11 +78,15 @@ class ContainerlabParser:
                 startup_config = (
                     node_data.get("startup-config")
                     or kind_defaults.get("startup-config")
+                    or defaults.get("startup-config")
                     or ""
                 )
-                if startup_config and Path(startup_config).exists():
+                config_path = Path(startup_config) if startup_config else None
+                if config_path is not None and not config_path.is_absolute():
+                    config_path = file_path.parent / config_path
+                if config_path is not None and config_path.is_file():
                     try:
-                        with open(startup_config, 'r', encoding='utf-8') as cf:
+                        with open(config_path, "r", encoding="utf-8") as cf:
                             config = cf.read()
                     except OSError:
                         pass
@@ -83,7 +94,8 @@ class ContainerlabParser:
                 node = CMLNode(
                     id=node_name,
                     label=node_data.get("labels", {}).get("label", node_name)
-                    if isinstance(node_data.get("labels"), dict) else node_name,
+                    if isinstance(node_data.get("labels"), dict)
+                    else node_name,
                     node_type=node_type,
                     x=x_pos,
                     y=0,
@@ -130,7 +142,9 @@ class ContainerlabParser:
         if isinstance(entry, str) and ":" in entry:
             parts = entry.split("---") if "---" in entry else entry.split(",")
             if len(parts) >= 2:
-                return [ContainerlabParser._split_endpoint(p.strip()) for p in parts[:2]]
+                return [
+                    ContainerlabParser._split_endpoint(p.strip()) for p in parts[:2]
+                ]
         return None
 
     @staticmethod

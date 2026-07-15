@@ -1,8 +1,8 @@
 """
 Tests for CML and VIRL parsers.
 """
+
 import pytest
-import tempfile
 from pathlib import Path
 
 from cml2gns.parsers.cml_parser import CMLParser
@@ -18,7 +18,9 @@ class TestCMLParser:
 
     @pytest.fixture
     def sample_cml_file(self):
-        return Path(__file__).parent / "fixtures" / "cml_samples" / "sample_topology.yaml"
+        return (
+            Path(__file__).parent / "fixtures" / "cml_samples" / "sample_topology.yaml"
+        )
 
     def test_parse_sample(self, parser, sample_cml_file):
         if not sample_cml_file.exists():
@@ -74,6 +76,12 @@ class TestCMLParser:
         topo = parser.parse(f)
         assert len(topo.nodes) == 0
 
+    def test_parse_empty_topology_mapping(self, parser, tmp_path):
+        f = tmp_path / "empty_topology.yaml"
+        f.write_text("topology: {}\n")
+        topo = parser.parse(f)
+        assert len(topo.nodes) == 0
+
     def test_parse_minimal_node(self, parser, tmp_path):
         f = tmp_path / "minimal.yaml"
         f.write_text(
@@ -85,9 +93,13 @@ class TestCMLParser:
         assert topo.nodes["n1"].node_type == "linux"
         assert topo.nodes["n1"].label == "n1"
 
-
     def test_parse_list_format(self, parser):
-        sample = Path(__file__).parent / "fixtures" / "cml_samples" / "sample_topology_list.yaml"
+        sample = (
+            Path(__file__).parent
+            / "fixtures"
+            / "cml_samples"
+            / "sample_topology_list.yaml"
+        )
         if not sample.exists():
             pytest.skip("List-format sample not found")
         topo = parser.parse(sample)
@@ -96,7 +108,12 @@ class TestCMLParser:
         assert len(topo.links) == 2
 
     def test_parse_list_format_node_fields(self, parser):
-        sample = Path(__file__).parent / "fixtures" / "cml_samples" / "sample_topology_list.yaml"
+        sample = (
+            Path(__file__).parent
+            / "fixtures"
+            / "cml_samples"
+            / "sample_topology_list.yaml"
+        )
         if not sample.exists():
             pytest.skip("List-format sample not found")
         topo = parser.parse(sample)
@@ -106,7 +123,12 @@ class TestCMLParser:
         assert r1.ram == 512
 
     def test_parse_list_format_interface_resolution(self, parser):
-        sample = Path(__file__).parent / "fixtures" / "cml_samples" / "sample_topology_list.yaml"
+        sample = (
+            Path(__file__).parent
+            / "fixtures"
+            / "cml_samples"
+            / "sample_topology_list.yaml"
+        )
         if not sample.exists():
             pytest.skip("List-format sample not found")
         topo = parser.parse(sample)
@@ -140,6 +162,32 @@ class TestCMLParser:
         assert link.node1_id == "r1"
         assert link.interface1 == "eth0"
 
+    def test_numeric_zero_endpoint_values_are_not_dropped(self, parser, tmp_path):
+        f = tmp_path / "numeric.yaml"
+        f.write_text(
+            "topology:\n"
+            "  nodes:\n"
+            "    0: {node_definition: linux}\n"
+            "    1: {node_definition: linux}\n"
+            "  links:\n"
+            "    0: {n1: 0, i1: 0, n2: 1, i2: 0}\n"
+        )
+        topo = parser.parse(f)
+        link = topo.links["0"]
+        assert link.node1_id == "0"
+        assert link.interface1 == "0"
+
+    def test_duplicate_list_node_ids_are_rejected(self, parser, tmp_path):
+        f = tmp_path / "duplicates.yaml"
+        f.write_text(
+            "lab:\n"
+            "  nodes:\n"
+            "    - {id: n1, node_definition: linux}\n"
+            "    - {id: n1, node_definition: linux}\n"
+        )
+        with pytest.raises(ValueError, match="Duplicate node ID"):
+            parser.parse(f)
+
 
 class TestVIRLParser:
     """Test cases for the VIRL XML parser."""
@@ -150,7 +198,9 @@ class TestVIRLParser:
 
     @pytest.fixture
     def sample_virl_file(self):
-        return Path(__file__).parent / "fixtures" / "virl_samples" / "sample_topology.xml"
+        return (
+            Path(__file__).parent / "fixtures" / "virl_samples" / "sample_topology.xml"
+        )
 
     def test_parse_sample(self, parser, sample_virl_file):
         if not sample_virl_file.exists():
@@ -198,11 +248,11 @@ class TestVIRLParser:
         f = tmp_path / "no_ns.xml"
         f.write_text(
             '<?xml version="1.0"?>\n'
-            '<topology>\n'
+            "<topology>\n"
             '  <node name="r1" subtype="iosv">\n'
             '    <position x="10" y="20"/>\n'
-            '  </node>\n'
-            '</topology>'
+            "  </node>\n"
+            "</topology>"
         )
         topo = parser.parse(f)
         assert len(topo.nodes) == 1

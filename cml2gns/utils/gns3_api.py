@@ -4,11 +4,12 @@ GNS3 server HTTP API client.
 Connects to a running GNS3 server to fetch template IDs, validate
 appliance availability, and optionally import projects.
 """
+
 import json
 import logging
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlsplit
 import base64
 
 logger = logging.getLogger(__name__)
@@ -22,14 +23,48 @@ class GNS3APIClient:
     Lightweight GNS3 server API client using only stdlib urllib.
     """
 
-    def __init__(self, host=None, port=None, user=None, password=None):
-        self.base_url = f"http://{host or DEFAULT_HOST}:{port or DEFAULT_PORT}"
+    def __init__(
+        self,
+        host=None,
+        port=None,
+        user=None,
+        password=None,
+        token=None,
+        protocol="http",
+    ):
+        host = host or DEFAULT_HOST
+        if "://" in host:
+            parsed = urlsplit(host)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError(f"Invalid GNS3 server URL: {host}")
+            if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError(
+                    "GNS3 server URL must not contain credentials, a query, or a fragment"
+                )
+            if parsed.path not in {"", "/"}:
+                raise ValueError("GNS3 server URL must not contain a path")
+            self.base_url = host.rstrip("/")
+        else:
+            self.base_url = (
+                f"{protocol}://{host}:{port if port is not None else DEFAULT_PORT}"
+            )
         self._auth_header = None
-        if user:
-            creds = base64.b64encode(
-                f"{user}:{password or ''}".encode()
-            ).decode()
+        if token:
+            self._auth_header = f"Bearer {token}"
+        elif user:
+            creds = base64.b64encode(f"{user}:{password or ''}".encode()).decode()
             self._auth_header = f"Basic {creds}"
+
+        parsed_base = urlsplit(self.base_url)
+        if (
+            self._auth_header
+            and parsed_base.scheme == "http"
+            and parsed_base.hostname not in {"127.0.0.1", "::1", "localhost"}
+        ):
+            logger.warning(
+                "GNS3 credentials are being sent over unencrypted HTTP to %s",
+                parsed_base.hostname,
+            )
 
     def _request(self, path, method="GET", body=None):
         url = urljoin(self.base_url + "/", path.lstrip("/"))
@@ -43,7 +78,10 @@ class GNS3APIClient:
         req = Request(url, data=body, headers=headers, method=method)
         try:
             with urlopen(req, timeout=15) as resp:
-                return json.loads(resp.read().decode())
+                payload = resp.read()
+                if not payload:
+                    return None
+                return json.loads(payload.decode())
         except HTTPError as e:
             logger.error(f"GNS3 API error {e.code}: {e.reason} ({url})")
             raise
@@ -70,15 +108,57 @@ class GNS3APIClient:
     def list_projects(self):
         return self._request("/v2/projects")
 
-    def import_project(self, project_id, gns3p_path):
-        """Import a .gns3p portable archive into the server."""
-        with open(gns3p_path, 'rb') as f:
+    def create_project(self, name, project_id=None):
+        """Create a project and return the server's project object."""
+        body = {"name": name}
+        if project_id:
+            body["project_id"] = project_id
+        return self._request("/v2/projects", method="POST", body=body)
+
+    def delete_project(self, project_id):
+        """Delete a project, primarily for transactional rollback."""
+        project_id = quote(str(project_id), safe="")
+        return self._request(f"/v2/projects/{project_id}", method="DELETE")
+
+    def create_node_from_template(self, project_id, template_id, name, x, y):
+        """Create a project node from an installed GNS3 template."""
+        project_id = quote(str(project_id), safe="")
+        template_id = quote(str(template_id), safe="")
+        return self._request(
+            f"/v2/projects/{project_id}/templates/{template_id}",
+            method="POST",
+            body={"name": name, "x": int(x), "y": int(y)},
+        )
+
+    def create_link(self, project_id, endpoints, link_type="ethernet"):
+        """Create a link between two server-side node endpoints."""
+        project_id = quote(str(project_id), safe="")
+        return self._request(
+            f"/v2/projects/{project_id}/links",
+            method="POST",
+            body={
+                "nodes": endpoints,
+                "link_type": link_type,
+                "suspend": False,
+            },
+        )
+
+    def create_drawing(self, project_id, drawing):
+        """Create a drawing from a GNS3Drawing-compatible dictionary."""
+        project_id = quote(str(project_id), safe="")
+        return self._request(
+            f"/v2/projects/{project_id}/drawings",
+            method="POST",
+            body=drawing,
+        )
+
+    def import_project(self, project_id, gns3project_path):
+        """Import a .gns3project portable archive into the server."""
+        with open(gns3project_path, "rb") as f:
             data = f.read()
 
-        url = urljoin(
-            self.base_url + "/",
-            f"/v2/projects/{project_id}/import"
-        )
+        project_id = quote(str(project_id), safe="")
+        url = urljoin(self.base_url + "/", f"/v2/projects/{project_id}/import")
         headers = {
             "Content-Type": "application/octet-stream",
         }
@@ -93,9 +173,7 @@ class GNS3APIClient:
             logger.error(f"Import failed {e.code}: {e.reason}")
             raise
         except URLError as e:
-            raise ConnectionError(
-                f"Cannot reach GNS3 server: {e.reason}"
-            ) from e
+            raise ConnectionError(f"Cannot reach GNS3 server: {e.reason}") from e
 
     def resolve_node_mappings(self, node_mappings):
         """
@@ -107,8 +185,11 @@ class GNS3APIClient:
         """
         templates = self.list_templates()
         by_name = {}
+        by_id = {}
         for t in templates:
             by_name[t.get("name", "").lower()] = t
+            if t.get("template_id"):
+                by_id[t["template_id"]] = t
 
         enriched = {}
         missing = []
@@ -116,7 +197,12 @@ class GNS3APIClient:
         for node_type, mapping in node_mappings.items():
             enriched[node_type] = dict(mapping)
             tpl_name = mapping.get("gns3_template", "")
-            server_tpl = by_name.get(tpl_name.lower())
+            requested_id = mapping.get("template_id")
+            server_tpl = (
+                by_id.get(requested_id)
+                if requested_id
+                else by_name.get(tpl_name.lower())
+            )
             if server_tpl:
                 enriched[node_type]["template_id"] = server_tpl.get("template_id")
                 logger.debug(

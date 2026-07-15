@@ -4,6 +4,7 @@ Topology diff/comparison utility.
 Compares two parsed topologies (regardless of source format) and produces
 a structured report of differences in nodes, links, and configurations.
 """
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -67,12 +68,16 @@ def diff_topologies(topo_a, topo_b, label_a="A", label_b="B"):
         if changes:
             links_changed.append({"key": key, "changes": changes})
 
-    name_changed = getattr(topo_a, 'name', '') != getattr(topo_b, 'name', '')
+    name_changed = getattr(topo_a, "name", "") != getattr(topo_b, "name", "")
 
     total_changes = (
         int(name_changed)
-        + len(added_labels) + len(removed_labels) + len(nodes_changed)
-        + len(links_added) + len(links_removed) + len(links_changed)
+        + len(added_labels)
+        + len(removed_labels)
+        + len(nodes_changed)
+        + len(links_added)
+        + len(links_removed)
+        + len(links_changed)
     )
 
     lines = []

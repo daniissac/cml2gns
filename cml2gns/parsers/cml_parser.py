@@ -5,6 +5,7 @@ Supports both CML 2.0-style (dict-based nodes/links with node_a/interface_a)
 and CML 2.5+-style (list-based nodes/links with n1/i1 shorthand, interface
 definitions, and ``lab`` root key).
 """
+
 import yaml
 import logging
 from pathlib import Path
@@ -17,46 +18,48 @@ class CMLParser:
     """
     Parser for Cisco Modeling Labs (CML) YAML topology files.
     """
-    
+
     def parse(self, file_path):
         """
         Parse a CML YAML file into a topology model.
-        
+
         Args:
             file_path (Path): Path to the CML YAML file
-            
+
         Returns:
             CMLTopology: Parsed topology object
-            
+
         Raises:
             ValueError: If the file cannot be parsed as valid CML YAML
         """
         logger.info(f"Parsing CML file: {file_path}")
-        
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f)
 
             topology_data = self._extract_topology_section(yaml_data, file_path)
 
             topology = CMLTopology(
-                name=(topology_data.get('name')
-                      or topology_data.get('title')
-                      or Path(file_path).stem),
-                description=topology_data.get('description', ''),
-                notes=topology_data.get('notes', '')
+                name=(
+                    topology_data.get("name")
+                    or topology_data.get("title")
+                    or Path(file_path).stem
+                ),
+                description=topology_data.get("description", ""),
+                notes=topology_data.get("notes", ""),
             )
-            
+
             self._parse_nodes(topology, topology_data)
             self._parse_links(topology, topology_data)
             self._parse_annotations(topology, topology_data)
-            
+
             logger.info(
                 f"Successfully parsed {len(topology.nodes)} nodes "
                 f"and {len(topology.links)} links"
             )
             return topology
-            
+
         except yaml.YAMLError as e:
             logger.error(f"Error parsing YAML in {file_path}: {str(e)}")
             raise ValueError(f"Invalid YAML in CML file: {str(e)}")
@@ -72,12 +75,12 @@ class CMLParser:
         if not isinstance(yaml_data, dict):
             raise ValueError("CML file root must be a YAML mapping")
 
-        for key in ('topology', 'lab'):
+        for key in ("topology", "lab"):
             section = yaml_data.get(key)
-            if section and isinstance(section, dict):
+            if isinstance(section, dict):
                 return section
 
-        if 'nodes' in yaml_data:
+        if "nodes" in yaml_data:
             return yaml_data
 
         raise ValueError(
@@ -86,7 +89,7 @@ class CMLParser:
 
     def _parse_nodes(self, topology, topology_data):
         """Parse nodes from dict-keyed or list-based format."""
-        nodes_data = topology_data.get('nodes')
+        nodes_data = topology_data.get("nodes")
         if not nodes_data:
             return
 
@@ -110,7 +113,10 @@ class CMLParser:
         for idx, node_data in enumerate(nodes_data):
             if not isinstance(node_data, dict):
                 continue
-            node_id = str(node_data.get('id', f'node_{idx}'))
+            raw_node_id = node_data.get("id")
+            node_id = str(raw_node_id) if raw_node_id is not None else f"node_{idx}"
+            if not node_id:
+                raise ValueError(f"Node at index {idx} has an empty ID")
             node = self._build_node(node_id, node_data)
             topology.add_node(node)
 
@@ -118,30 +124,34 @@ class CMLParser:
     def _build_node(node_id, node_data):
         node = CMLNode(
             id=node_id,
-            label=node_data.get('label', node_id),
-            node_type=node_data.get('node_definition'),
-            x=node_data.get('x', 0),
-            y=node_data.get('y', 0),
-            configuration=node_data.get('configuration', ''),
-            image_definition=node_data.get('image_definition', ''),
-            ram=node_data.get('ram'),
-            cpus=node_data.get('cpus'),
-            boot_disk_size=node_data.get('boot_disk_size'),
-            data_volume=node_data.get('data_volume'),
-            cpu_limit=node_data.get('cpu_limit'),
-            tags=node_data.get('tags', []),
+            label=node_data.get("label", node_id),
+            node_type=node_data.get("node_definition"),
+            x=node_data.get("x", 0),
+            y=node_data.get("y", 0),
+            configuration=node_data.get("configuration", ""),
+            image_definition=node_data.get("image_definition", ""),
+            ram=node_data.get("ram"),
+            cpus=node_data.get("cpus"),
+            boot_disk_size=node_data.get("boot_disk_size"),
+            data_volume=node_data.get("data_volume"),
+            cpu_limit=node_data.get("cpu_limit"),
+            tags=node_data.get("tags", []),
         )
 
-        interfaces_data = node_data.get('interfaces')
+        interfaces_data = node_data.get("interfaces")
         if isinstance(interfaces_data, list):
             for iface in interfaces_data:
                 if isinstance(iface, dict):
-                    node.add_interface(CMLInterface(
-                        id=iface.get('id'),
-                        label=iface.get('label'),
-                        slot=iface.get('slot'),
-                        iface_type=iface.get('type'),
-                    ))
+                    if iface.get("id") is None:
+                        continue
+                    node.add_interface(
+                        CMLInterface(
+                            id=iface.get("id"),
+                            label=iface.get("label"),
+                            slot=iface.get("slot"),
+                            iface_type=iface.get("type"),
+                        )
+                    )
                 else:
                     node.add_interface(str(iface))
 
@@ -149,7 +159,7 @@ class CMLParser:
 
     def _parse_links(self, topology, topology_data):
         """Parse links from dict-keyed or list-based format."""
-        links_data = topology_data.get('links')
+        links_data = topology_data.get("links")
         if not links_data:
             return
 
@@ -172,7 +182,7 @@ class CMLParser:
         for idx, link_data in enumerate(links_data):
             if not isinstance(link_data, dict):
                 continue
-            link_id = str(link_data.get('id', f'link_{idx}'))
+            link_id = str(link_data.get("id", f"link_{idx}"))
             link = self._build_link(link_id, link_data, topology)
             if link:
                 topology.add_link(link)
@@ -180,19 +190,11 @@ class CMLParser:
     @staticmethod
     def _build_link(link_id, link_data, topology):
         """Build a CMLLink supporting both old and new key conventions."""
-        node1 = (link_data.get('node_a')
-                 or link_data.get('n1')
-                 or link_data.get('src'))
-        node2 = (link_data.get('node_b')
-                 or link_data.get('n2')
-                 or link_data.get('dst'))
+        node1 = CMLParser._first_present(link_data, "node_a", "n1", "src")
+        node2 = CMLParser._first_present(link_data, "node_b", "n2", "dst")
 
-        iface1_raw = (link_data.get('interface_a')
-                      or link_data.get('i1')
-                      or link_data.get('srcPort'))
-        iface2_raw = (link_data.get('interface_b')
-                      or link_data.get('i2')
-                      or link_data.get('dstPort'))
+        iface1_raw = CMLParser._first_present(link_data, "interface_a", "i1", "srcPort")
+        iface2_raw = CMLParser._first_present(link_data, "interface_b", "i2", "dstPort")
 
         if node1 is None or node2 is None:
             logger.warning(f"Link {link_id}: missing endpoint node IDs, skipping")
@@ -213,6 +215,14 @@ class CMLParser:
         )
 
     @staticmethod
+    def _first_present(data, *keys):
+        """Return the first present, non-null value without dropping zero."""
+        for key in keys:
+            if key in data and data[key] is not None:
+                return data[key]
+        return None
+
+    @staticmethod
     def _resolve_interface(node_id, iface_ref, topology):
         """Resolve an interface reference to a label.
 
@@ -231,6 +241,6 @@ class CMLParser:
     @staticmethod
     def _parse_annotations(topology, topology_data):
         """Extract annotations/notes from the topology data."""
-        annotations = topology_data.get('annotations')
+        annotations = topology_data.get("annotations")
         if isinstance(annotations, list):
             topology.annotations = annotations
