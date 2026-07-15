@@ -361,7 +361,12 @@ class Converter:
                     )
             raise
 
-        config_count = sum(1 for node in topology.nodes.values() if node.configuration)
+        config_count = sum(
+            len(node.iter_configurations())
+            if hasattr(node, "iter_configurations")
+            else int(bool(node.configuration))
+            for node in topology.nodes.values()
+        )
         return {
             "project_id": project_id,
             "project_name": project.get("name") or project_name or topology.name,

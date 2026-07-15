@@ -117,7 +117,9 @@ class CMLNode:
         self.node_type = node_type
         self.x = x
         self.y = y
-        self.configuration = configuration or ""
+        self.configuration, self.configuration_files = self._normalize_configuration(
+            configuration
+        )
         self.image_definition = image_definition
         self.ram = ram
         self.cpus = cpus
@@ -130,6 +132,47 @@ class CMLNode:
         # Will be filled in during node mapping
         self.gns3_template = None
         self.console_type = None
+
+    @staticmethod
+    def _normalize_configuration(configuration):
+        """Normalize legacy text and current named CML config records.
+
+        CML exports may represent a node configuration as a string or as a
+        list of ``{name, content}`` records. ``configuration`` remains the
+        primary config text for backwards compatibility, while
+        ``configuration_files`` retains every named record.
+        """
+        if configuration is None or configuration == "" or configuration == []:
+            return "", []
+        if isinstance(configuration, str):
+            return configuration, []
+
+        records = configuration if isinstance(configuration, list) else [configuration]
+        normalized = []
+        for index, record in enumerate(records, start=1):
+            if not isinstance(record, dict):
+                raise ValueError(
+                    "CML node configuration records must be mappings with "
+                    "'name' and 'content' fields"
+                )
+            name = record.get("name") or f"config_{index}.txt"
+            content = record.get("content", "")
+            if not isinstance(name, str) or not isinstance(content, str):
+                raise ValueError(
+                    "CML node configuration record names and contents must be strings"
+                )
+            normalized.append({"name": name, "content": content})
+
+        primary = normalized[0]["content"] if normalized else ""
+        return primary, normalized
+
+    def iter_configurations(self):
+        """Return every config as a named record without exposing mutable state."""
+        if self.configuration_files:
+            return [dict(record) for record in self.configuration_files]
+        if self.configuration:
+            return [{"name": None, "content": self.configuration}]
+        return []
 
     def add_interface(self, interface):
         """Add an interface to the node (CMLInterface or str)."""
@@ -158,13 +201,18 @@ class CMLNode:
         return interface_ref
 
     def to_dict(self):
+        configuration = (
+            [dict(record) for record in self.configuration_files]
+            if self.configuration_files
+            else self.configuration
+        )
         d = {
             "id": self.id,
             "label": self.label,
             "node_definition": self.node_type,
             "x": self.x,
             "y": self.y,
-            "configuration": self.configuration,
+            "configuration": configuration,
         }
         if self.image_definition:
             d["image_definition"] = self.image_definition

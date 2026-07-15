@@ -76,8 +76,19 @@ class GNS3Generator:
             project.add_node(gns3_node)
             node_map[node.id] = gns3_node.node_id
 
-            if node.configuration:
-                transformed = node.configuration
+            node_configs = (
+                node.iter_configurations()
+                if hasattr(node, "iter_configurations")
+                else (
+                    [{"name": None, "content": node.configuration}]
+                    if node.configuration
+                    else []
+                )
+            )
+            node_name = self._safe_filename(gns3_node.name, fallback="node")
+            used_names = set()
+            for index, config in enumerate(node_configs, start=1):
+                transformed = config["content"]
                 if self.config_transformer is not None:
                     transformed = self.config_transformer.transform(
                         transformed,
@@ -85,10 +96,14 @@ class GNS3Generator:
                         direction="cml_to_gns3",
                     )
 
-                node_name = self._safe_filename(gns3_node.name, fallback="node")
-                config_files.append(
-                    (f"{node_name}_{gns3_node.node_id}.cfg", transformed, node.id)
-                )
+                original_name = config.get("name")
+                if original_name:
+                    filename = self._safe_filename(original_name, f"config_{index}.txt")
+                    filename = self._deduplicate_filename(filename, used_names)
+                    relative_path = Path(f"{node_name}_{gns3_node.node_id}") / filename
+                else:
+                    relative_path = Path(f"{node_name}_{gns3_node.node_id}.cfg")
+                config_files.append((relative_path, transformed, node.id))
 
         for link in topology.links.values():
             if link.node1_id in node_map and link.node2_id in node_map:
@@ -114,8 +129,9 @@ class GNS3Generator:
         if config_files:
             config_dir = output_dir / "configs"
             config_dir.mkdir(exist_ok=True)
-            for filename, config, source_node_id in config_files:
-                config_file = config_dir / filename
+            for relative_path, config, source_node_id in config_files:
+                config_file = config_dir / relative_path
+                config_file.parent.mkdir(parents=True, exist_ok=True)
                 with open(config_file, "w", encoding="utf-8") as f:
                     f.write(config)
                 logger.debug(
@@ -133,6 +149,7 @@ class GNS3Generator:
             "project_file": str(project_file),
             "node_count": len(project.nodes),
             "link_count": len(project.links),
+            "config_count": len(config_files),
         }
 
         if portable:
@@ -148,6 +165,19 @@ class GNS3Generator:
         value = re.sub(r"[^\w.-]+", "_", str(value or ""), flags=re.UNICODE)
         value = value.strip("._")
         return value or fallback
+
+    @staticmethod
+    def _deduplicate_filename(filename, used_names):
+        """Keep named config sidecars distinct after filename sanitization."""
+        candidate = filename
+        stem = Path(filename).stem
+        suffix = Path(filename).suffix
+        counter = 2
+        while candidate.casefold() in used_names:
+            candidate = f"{stem}_{counter}{suffix}"
+            counter += 1
+        used_names.add(candidate.casefold())
+        return candidate
 
     @staticmethod
     def _create_portable(output_dir, project_name):

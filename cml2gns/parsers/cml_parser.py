@@ -75,13 +75,23 @@ class CMLParser:
         if not isinstance(yaml_data, dict):
             raise ValueError("CML file root must be a YAML mapping")
 
+        # Current CML exports keep nodes, links, and annotations at the root,
+        # while ``lab`` contains metadata such as title, description, and
+        # notes. Preserve the root topology and merge that metadata into the
+        # section consumed by the model builder.
+        if "nodes" in yaml_data:
+            section = dict(yaml_data)
+            lab_metadata = yaml_data.get("lab")
+            if isinstance(lab_metadata, dict):
+                for key in ("name", "title", "description", "notes"):
+                    if not section.get(key) and lab_metadata.get(key) is not None:
+                        section[key] = lab_metadata[key]
+            return section
+
         for key in ("topology", "lab"):
             section = yaml_data.get(key)
             if isinstance(section, dict):
                 return section
-
-        if "nodes" in yaml_data:
-            return yaml_data
 
         raise ValueError(
             f"Missing 'topology' or 'lab' section in CML file: {file_path}"

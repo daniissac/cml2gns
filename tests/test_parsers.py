@@ -138,6 +138,56 @@ class TestCMLParser:
         assert link.node2_id == "s1"
         assert link.interface2 == "GigabitEthernet0/1"
 
+    def test_parse_current_export_with_root_topology_and_lab_metadata(
+        self, parser, tmp_path
+    ):
+        f = tmp_path / "current_export.yaml"
+        f.write_text(
+            "---\n"
+            "annotations:\n"
+            "  - {type: rectangle, x1: 0, y1: 0, x2: 100, y2: 100}\n"
+            "nodes:\n"
+            "  - id: r1\n"
+            "    label: Router 1\n"
+            "    node_definition: iosv\n"
+            "    configuration:\n"
+            "      - name: ios_config.txt\n"
+            "        content: |\n"
+            "          hostname Router-1\n"
+            "    interfaces:\n"
+            "      - {id: i0, label: GigabitEthernet0/0, type: physical}\n"
+            "  - id: r2\n"
+            "    label: Router 2\n"
+            "    node_definition: iosv\n"
+            "    interfaces:\n"
+            "      - {id: i0, label: GigabitEthernet0/0, type: physical}\n"
+            "links:\n"
+            "  - {id: l1, n1: r1, i1: i0, n2: r2, i2: i0}\n"
+            "lab:\n"
+            "  title: Current Export\n"
+            "  description: Root topology with nested metadata\n"
+            "  notes: Preserved notes\n"
+            "  version: 0.3.0\n"
+        )
+
+        topo = parser.parse(f)
+
+        assert topo.name == "Current Export"
+        assert topo.description == "Root topology with nested metadata"
+        assert topo.notes == "Preserved notes"
+        assert len(topo.nodes) == 2
+        assert len(topo.links) == 1
+        assert topo.nodes["r1"].configuration == "hostname Router-1\n"
+        assert topo.nodes["r1"].configuration_files == [
+            {"name": "ios_config.txt", "content": "hostname Router-1\n"}
+        ]
+        serialized_node = topo.to_dict()["lab"]["nodes"][0]
+        assert serialized_node["configuration"] == [
+            {"name": "ios_config.txt", "content": "hostname Router-1\n"}
+        ]
+        assert topo.links["l1"].interface1 == "GigabitEthernet0/0"
+        assert len(topo.annotations) == 1
+
     def test_parse_lab_root_key(self, parser, tmp_path):
         f = tmp_path / "lab_root.yaml"
         f.write_text(

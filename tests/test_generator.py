@@ -87,6 +87,31 @@ class TestGNS3Generator:
         assert len(cfg_files) == 1
         assert "hostname R1" in cfg_files[0].read_text()
 
+    def test_generate_preserves_named_config_records(self, generator, tmp_path):
+        topo = CMLTopology(name="named_configs")
+        node = CMLNode(
+            id="r1",
+            label="Router1",
+            node_type="iosv",
+            configuration=[
+                {"name": "ios_config.txt", "content": "hostname R1\n"},
+                {"name": "day0.txt", "content": "interface Loopback0\n"},
+            ],
+        )
+        topo.add_node(node)
+        map_nodes(topo, DEFAULT_NODE_MAPPINGS)
+
+        result = generator.generate(topo, tmp_path)
+
+        config_root = tmp_path / "configs"
+        assert result["config_count"] == 2
+        assert next(config_root.glob("Router1_*/ios_config.txt")).read_text() == (
+            "hostname R1\n"
+        )
+        assert next(config_root.glob("Router1_*/day0.txt")).read_text() == (
+            "interface Loopback0\n"
+        )
+
     def test_generate_uses_correct_symbol(self, generator, tmp_path):
         topo = self._build_topology()
         result = generator.generate(topo, tmp_path)
