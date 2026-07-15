@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Document installation from PyPI and link the package page.
+- Align the package summary with the primary CML/VIRL-to-GNS3 workflow.
+
 ## 0.2.0
 
 - Correct GNS3 project nodes to use `node_type` and stop generating fake template IDs.

@@ -3,6 +3,7 @@
 **Network lab topology translation and GNS3 deployment.**
 
 [![CI](https://github.com/daniissac/cml2gns/actions/workflows/ci.yml/badge.svg)](https://github.com/daniissac/cml2gns/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/cml2gns.svg)](https://pypi.org/project/cml2gns/)
 [![Python 3.9–3.14](https://img.shields.io/badge/Python-3.9%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -26,7 +27,13 @@ The test suite covers Python 3.9 through 3.14 in GitHub Actions.
 
 ## Installation
 
-The project is not yet published on PyPI. Install it from source:
+Install the latest release from PyPI:
+
+```bash
+python -m pip install cml2gns
+```
+
+To install from source instead:
 
 ```bash
 git clone https://github.com/daniissac/cml2gns.git
