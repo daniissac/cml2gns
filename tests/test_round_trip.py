@@ -11,7 +11,6 @@ from cml2gns.parsers.cml_parser import CMLParser
 from cml2gns.parsers.gns3_parser import GNS3Parser
 from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
 
-
 FIXTURES = Path(__file__).parent / "fixtures"
 CML_LIST_SAMPLE = FIXTURES / "cml_samples" / "sample_topology_list.yaml"
 

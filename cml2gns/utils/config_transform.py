@@ -7,8 +7,8 @@ handle common differences such as interface naming conventions and
 management-plane adjustments.
 """
 
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 

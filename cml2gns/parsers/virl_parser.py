@@ -4,13 +4,13 @@ Parser for VIRL (XML) topology files.
 Uses defusedxml for safe XML parsing (DTD/XXE protection).
 """
 
-import re
 import logging
+import re
 from pathlib import Path
 
 from defusedxml import ElementTree as ET
 
-from cml2gns.models.virl_model import VIRLTopology, VIRLNode, VIRLLink
+from cml2gns.models.virl_model import VIRLLink, VIRLNode, VIRLTopology
 
 logger = logging.getLogger(__name__)
 

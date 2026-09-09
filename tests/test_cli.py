@@ -3,8 +3,9 @@ Tests for the CLI interface.
 """
 
 import json
-import pytest
 from pathlib import Path
+
+import pytest
 from click.testing import CliRunner
 
 from cml2gns.cli import cli

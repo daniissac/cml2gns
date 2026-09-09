@@ -3,19 +3,20 @@
 Command line interface for cml2gns.
 """
 
-import sys
-import click
 import logging
 import shutil
+import sys
 import tempfile
 from pathlib import Path
+
+import click
 
 from cml2gns import __version__
 from cml2gns.converter import Converter
 from cml2gns.utils.config import (
-    load_config,
     DEFAULT_NODE_MAPPINGS,
     GNS3_VERSION_REVISIONS,
+    load_config,
     validate_node_mappings,
 )
 

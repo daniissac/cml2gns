@@ -2,9 +2,10 @@
 Generator for containerlab .clab.yml topology files.
 """
 
-import yaml
 import logging
 from pathlib import Path
+
+import yaml
 
 logger = logging.getLogger(__name__)
 

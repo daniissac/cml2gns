@@ -3,14 +3,14 @@ Tests for the GNS3 generator.
 """
 
 import json
-import pytest
 from pathlib import Path
 
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
-from cml2gns.generators.gns3_generator import GNS3Generator
-from cml2gns.utils.node_mappings import map_nodes
-from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
+import pytest
 
+from cml2gns.generators.gns3_generator import GNS3Generator
+from cml2gns.models.cml_model import CMLLink, CMLNode, CMLTopology
+from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
+from cml2gns.utils.node_mappings import map_nodes
 
 PROJECT_ID = "11111111-1111-4111-8111-111111111111"
 

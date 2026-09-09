@@ -2,8 +2,9 @@
 Tests for CML and VIRL parsers.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from cml2gns.parsers.cml_parser import CMLParser
 from cml2gns.parsers.virl_parser import VIRLParser

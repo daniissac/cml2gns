@@ -9,14 +9,14 @@ from pathlib import Path
 
 import yaml
 
-from cml2gns.parsers.cml_parser import CMLParser
-from cml2gns.parsers.virl_parser import VIRLParser
 from cml2gns.generators.gns3_generator import GNS3Generator
 from cml2gns.models.gns3_model import GNS3Link
-from cml2gns.utils.validators import validate_topology
-from cml2gns.utils.node_mappings import map_nodes, lookup_node_mapping
+from cml2gns.parsers.cml_parser import CMLParser
+from cml2gns.parsers.virl_parser import VIRLParser
 from cml2gns.utils.config import GNS3_VERSION_REVISIONS, validate_node_mappings
+from cml2gns.utils.node_mappings import lookup_node_mapping, map_nodes
 from cml2gns.utils.topology_diff import diff_topologies
+from cml2gns.utils.validators import validate_topology
 from cml2gns.utils.visualizer import visualize_topology
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class Converter:
             logger.info(f"Detected VIRL format for {input_file}")
             return "virl"
 
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             content = f.read()
 
         if content.lstrip().startswith("{"):
@@ -255,8 +255,8 @@ class Converter:
         input_file = Path(input_file)
         output_file = Path(output_file)
 
-        from cml2gns.parsers.gns3_parser import GNS3Parser
         from cml2gns.generators.cml_generator import CMLGenerator
+        from cml2gns.parsers.gns3_parser import GNS3Parser
 
         topology = GNS3Parser().parse(input_file)
         validate_topology(topology)

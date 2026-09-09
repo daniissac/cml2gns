@@ -3,20 +3,20 @@ Tests for the new features: diff, containerlab, visualization,
 GNS3 API client, drawings, and config transformation.
 """
 
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from cml2gns.converter import Converter
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
+from cml2gns.generators.containerlab_generator import ContainerlabGenerator
+from cml2gns.models.cml_model import CMLLink, CMLNode, CMLTopology
 from cml2gns.models.gns3_model import GNS3Drawing, GNS3Project
 from cml2gns.parsers.containerlab_parser import ContainerlabParser
-from cml2gns.generators.containerlab_generator import ContainerlabGenerator
-from cml2gns.utils.topology_diff import diff_topologies
-from cml2gns.utils.visualizer import visualize_topology
 from cml2gns.utils.annotations import extract_drawings
 from cml2gns.utils.config_transform import ConfigTransformer
-
+from cml2gns.utils.topology_diff import diff_topologies
+from cml2gns.utils.visualizer import visualize_topology
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CML_SAMPLE = FIXTURES / "cml_samples" / "sample_topology.yaml"

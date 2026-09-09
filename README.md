@@ -48,6 +48,12 @@ python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
+To verify the HTTP contract against a real GNS3 server, run the opt-in check:
+
+```bash
+GNS3_URL=http://localhost:3080 python -m pytest tests/test_gns3_api.py -q
+```
+
 ## Choose a conversion mode
 
 ### Create an offline GNS3 project
