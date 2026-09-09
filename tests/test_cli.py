@@ -36,6 +36,7 @@ class TestConvertCommand:
         result = runner.invoke(cli, ["convert", "-i", sample_cml_file, "-o", out_dir])
         assert result.exit_code == 0
         assert "Successfully converted" in result.output
+        assert "Preserved 3 startup configuration(s)" in result.output
         assert any(Path(out_dir).glob("*.gns3"))
 
     def test_convert_virl(self, runner, sample_virl_file, tmp_path):

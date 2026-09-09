@@ -169,6 +169,12 @@ class TestVisualizer:
         assert "TestNet" in output
         assert "R1" in output
         assert "R2" in output
+        diagram = output.split("Connection diagram:", 1)[1]
+        assert diagram.count("[ R1 ]") == 1
+        assert diagram.count("[ R2 ]") == 1
+        r1_row = next(line for line in output.splitlines() if line.startswith("R1"))
+        assert r1_row.rstrip().endswith("1")
+        assert "Gi0/0" in output
 
     def test_empty_topology(self):
         topo = CMLTopology(name="Empty")
@@ -181,6 +187,8 @@ class TestVisualizer:
         output = converter.visualize(CML_SAMPLE)
         assert "Router 1" in output
         assert "Router 2" in output
+        assert "GigabitEthernet0/0" in output
+        assert "GigabitEthernet0/1" in output
 
 
 class TestAnnotations:
