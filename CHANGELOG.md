@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Stop generating misleading topology values and preserve only values supported by the source data.
+- Improve GNS3 validation, conversion fidelity, command output, and regression coverage.
+
 ## 0.2.1
 
 - Document installation from PyPI and link the package page.
