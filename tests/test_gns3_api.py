@@ -1,6 +1,7 @@
 """Integration tests for the server-backed GNS3 deployment workflow."""
 
 import json
+import os
 from urllib.parse import urlsplit
 
 import pytest
@@ -9,7 +10,6 @@ from click.testing import CliRunner
 from cml2gns.cli import cli
 from cml2gns.converter import Converter
 from cml2gns.utils.gns3_api import GNS3APIClient
-
 
 PROJECT_ID = "11111111-1111-4111-8111-111111111111"
 TEMPLATE_ID = "22222222-2222-4222-8222-222222222222"
@@ -195,3 +195,13 @@ def test_deploy_cli_smoke(fake_transport, tmp_path):
 def test_server_url_rejects_embedded_credentials():
     with pytest.raises(ValueError, match="must not contain credentials"):
         GNS3APIClient(host="https://user:password@gns3.example")
+
+
+@pytest.mark.skipif(not os.getenv("GNS3_URL"), reason="GNS3_URL is not configured")
+def test_live_server_contract():
+    """Opt-in check against a real GNS3 server."""
+    client = GNS3APIClient(
+        host=os.environ["GNS3_URL"], token=os.getenv("GNS3_API_TOKEN")
+    )
+    assert client.get_version().get("version")
+    assert isinstance(client.list_templates(), list)

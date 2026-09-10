@@ -3,20 +3,20 @@ Tests for the new features: diff, containerlab, visualization,
 GNS3 API client, drawings, and config transformation.
 """
 
-import pytest
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from cml2gns.converter import Converter
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
+from cml2gns.generators.containerlab_generator import ContainerlabGenerator
+from cml2gns.models.cml_model import CMLLink, CMLNode, CMLTopology
 from cml2gns.models.gns3_model import GNS3Drawing, GNS3Project
 from cml2gns.parsers.containerlab_parser import ContainerlabParser
-from cml2gns.generators.containerlab_generator import ContainerlabGenerator
-from cml2gns.utils.topology_diff import diff_topologies
-from cml2gns.utils.visualizer import visualize_topology
 from cml2gns.utils.annotations import extract_drawings
 from cml2gns.utils.config_transform import ConfigTransformer
-
+from cml2gns.utils.topology_diff import diff_topologies
+from cml2gns.utils.visualizer import visualize_topology
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CML_SAMPLE = FIXTURES / "cml_samples" / "sample_topology.yaml"
@@ -169,6 +169,12 @@ class TestVisualizer:
         assert "TestNet" in output
         assert "R1" in output
         assert "R2" in output
+        diagram = output.split("Connection diagram:", 1)[1]
+        assert diagram.count("[ R1 ]") == 1
+        assert diagram.count("[ R2 ]") == 1
+        r1_row = next(line for line in output.splitlines() if line.startswith("R1"))
+        assert r1_row.rstrip().endswith("1")
+        assert "Gi0/0" in output
 
     def test_empty_topology(self):
         topo = CMLTopology(name="Empty")
@@ -181,6 +187,8 @@ class TestVisualizer:
         output = converter.visualize(CML_SAMPLE)
         assert "Router 1" in output
         assert "Router 2" in output
+        assert "GigabitEthernet0/0" in output
+        assert "GigabitEthernet0/1" in output
 
 
 class TestAnnotations:

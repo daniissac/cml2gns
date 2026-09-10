@@ -4,7 +4,7 @@ Tests for GNS3 models (GNS3Project, GNS3Node, GNS3Link).
 
 import pytest
 
-from cml2gns.models.gns3_model import GNS3Project, GNS3Node, GNS3Link
+from cml2gns.models.gns3_model import GNS3Link, GNS3Node, GNS3Project
 
 
 class TestGNS3Node:

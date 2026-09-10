@@ -4,10 +4,9 @@ Tests for topology and project validators.
 
 import pytest
 
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
-from cml2gns.models.gns3_model import GNS3Project, GNS3Node, GNS3Link
-from cml2gns.utils.validators import validate_topology, validate_gns3_project
-
+from cml2gns.models.cml_model import CMLLink, CMLNode, CMLTopology
+from cml2gns.models.gns3_model import GNS3Link, GNS3Node, GNS3Project
+from cml2gns.utils.validators import validate_gns3_project, validate_topology
 
 PROJECT_ID = "11111111-1111-4111-8111-111111111111"
 NODE_ID = "22222222-2222-4222-8222-222222222222"

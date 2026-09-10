@@ -5,12 +5,12 @@ Connects to a running GNS3 server to fetch template IDs, validate
 appliance availability, and optionally import projects.
 """
 
+import base64
 import json
 import logging
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urljoin, urlsplit
-import base64
+from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 

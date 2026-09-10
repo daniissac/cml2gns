@@ -8,9 +8,10 @@ import re
 import uuid
 import zipfile
 from pathlib import Path
-from cml2gns.models.gns3_model import GNS3Project, GNS3Node, GNS3Link
-from cml2gns.utils.validators import validate_gns3_project
+
+from cml2gns.models.gns3_model import GNS3Link, GNS3Node, GNS3Project
 from cml2gns.utils.annotations import extract_drawings
+from cml2gns.utils.validators import validate_gns3_project
 
 logger = logging.getLogger(__name__)
 

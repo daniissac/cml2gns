@@ -10,10 +10,10 @@ import logging
 from pathlib import Path
 
 from cml2gns.models.cml_model import (
-    CMLTopology,
-    CMLNode,
-    CMLLink,
     CMLInterface,
+    CMLLink,
+    CMLNode,
+    CMLTopology,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class GNS3Parser:
         logger.info(f"Parsing GNS3 file: {file_path}")
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             name = data.get("name", file_path.stem)

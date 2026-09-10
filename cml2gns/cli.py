@@ -3,19 +3,20 @@
 Command line interface for cml2gns.
 """
 
-import sys
-import click
 import logging
 import shutil
+import sys
 import tempfile
 from pathlib import Path
+
+import click
 
 from cml2gns import __version__
 from cml2gns.converter import Converter
 from cml2gns.utils.config import (
-    load_config,
     DEFAULT_NODE_MAPPINGS,
     GNS3_VERSION_REVISIONS,
+    load_config,
     validate_node_mappings,
 )
 
@@ -224,6 +225,11 @@ def convert(
             click.echo(
                 f"Created {result['node_count']} nodes and {result['link_count']} links"
             )
+            if result.get("config_count"):
+                click.echo(
+                    f"Preserved {result['config_count']} startup configuration(s) "
+                    f"in {output_path / 'configs'}"
+                )
 
         if result.get("portable_file"):
             click.echo(f"Portable project: {result['portable_file']}")
@@ -319,6 +325,10 @@ def reverse(input, output):
         click.echo(f"Successfully converted GNS3 project to CML YAML: {output}")
         click.echo(f"  Nodes: {result['node_count']}")
         click.echo(f"  Links: {result['link_count']}")
+        click.echo(
+            "  Note: node types are inferred and startup configurations "
+            "are not recovered from a .gns3 file."
+        )
     except Exception as e:
         click.echo(f"Error during reverse conversion: {e}")
         logger.exception("Reverse conversion error")

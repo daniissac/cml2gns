@@ -2,11 +2,12 @@
 Parser for containerlab .clab.yml topology files.
 """
 
-import yaml
 import logging
 from pathlib import Path
 
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink
+import yaml
+
+from cml2gns.models.cml_model import CMLLink, CMLNode, CMLTopology
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class ContainerlabParser:
         logger.info(f"Parsing containerlab file: {file_path}")
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             if not isinstance(data, dict):
@@ -86,7 +87,7 @@ class ContainerlabParser:
                     config_path = file_path.parent / config_path
                 if config_path is not None and config_path.is_file():
                     try:
-                        with open(config_path, "r", encoding="utf-8") as cf:
+                        with open(config_path, encoding="utf-8") as cf:
                             config = cf.read()
                     except OSError:
                         pass

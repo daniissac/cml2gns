@@ -6,10 +6,12 @@ and CML 2.5+-style (list-based nodes/links with n1/i1 shorthand, interface
 definitions, and ``lab`` root key).
 """
 
-import yaml
 import logging
 from pathlib import Path
-from cml2gns.models.cml_model import CMLTopology, CMLNode, CMLLink, CMLInterface
+
+import yaml
+
+from cml2gns.models.cml_model import CMLInterface, CMLLink, CMLNode, CMLTopology
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ class CMLParser:
         logger.info(f"Parsing CML file: {file_path}")
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 yaml_data = yaml.safe_load(f)
 
             topology_data = self._extract_topology_section(yaml_data, file_path)

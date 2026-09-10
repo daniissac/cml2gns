@@ -2,10 +2,12 @@
 Tests for the converter module.
 """
 
-import pytest
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
+
+import pytest
+
 from cml2gns.converter import Converter
 from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS
 

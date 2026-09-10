@@ -43,15 +43,23 @@ def _node_table(topology):
     rows = [("Label", "Type", "X", "Y", "Interfaces")]
     rows.append(("-" * 20, "-" * 18, "-" * 5, "-" * 5, "-" * 12))
     for node in topology.nodes.values():
-        iface_count = len(getattr(node, "interfaces", []))
+        interfaces = {
+            str(getattr(iface, "label", None) or getattr(iface, "id", iface))
+            for iface in getattr(node, "interfaces", [])
+        }
+        for link in topology.links.values():
+            if link.node1_id == node.id and link.interface1:
+                interfaces.add(str(link.interface1))
+            if link.node2_id == node.id and link.interface2:
+                interfaces.add(str(link.interface2))
         ntype = getattr(node, "node_type", "") or ""
         rows.append(
             (
-                str(node.label)[:20],
-                ntype[:18],
+                str(node.label),
+                ntype,
                 str(int(getattr(node, "x", 0))),
                 str(int(getattr(node, "y", 0))),
-                str(iface_count),
+                str(len(interfaces)),
             )
         )
     col_widths = [max(len(r[i]) for r in rows) for i in range(5)]
@@ -74,7 +82,7 @@ def _link_table(topology):
         n2 = node_label.get(link.node2_id, link.node2_id)
         i1 = str(link.interface1 or "")
         i2 = str(link.interface2 or "")
-        rows.append((n1[:20], i1[:16], n2[:20], i2[:16]))
+        rows.append((n1, i1, n2, i2))
 
     col_widths = [max(len(r[i]) for r in rows) for i in range(4)]
     lines = []
@@ -85,7 +93,7 @@ def _link_table(topology):
 
 
 def _ascii_graph(topology):
-    """Render a minimal ASCII adjacency diagram."""
+    """Render each physical link once as a minimal ASCII diagram."""
     if not topology.nodes:
         return "(empty topology)"
 
@@ -93,31 +101,17 @@ def _ascii_graph(topology):
     for node in topology.nodes.values():
         node_label[node.id] = node.label
 
-    adjacency = {}
-    for node in topology.nodes.values():
-        adjacency[node.label] = []
-
+    connected = set()
+    lines = ["Connection diagram:"]
     for link in topology.links.values():
         n1 = node_label.get(link.node1_id, link.node1_id)
         n2 = node_label.get(link.node2_id, link.node2_id)
         i1 = str(link.interface1 or "")
         i2 = str(link.interface2 or "")
-        if n1 in adjacency:
-            adjacency[n1].append((n2, i1, i2))
-        if n2 in adjacency:
-            adjacency[n2].append((n1, i2, i1))
+        lines.append(f"  [ {n1} ] ---({i1})---({i2})--- [ {n2} ]")
+        connected.update((link.node1_id, link.node2_id))
 
-    lines = ["Connection diagram:"]
-    for label in sorted(adjacency):
-        box = f"[ {label} ]"
-        neighbors = adjacency[label]
-        if not neighbors:
-            lines.append(f"  {box}")
-        else:
-            for idx, (peer, local_if, remote_if) in enumerate(neighbors):
-                prefix = f"  {box}" if idx == 0 else " " * (len(box) + 2)
-                link_desc = f"{local_if}" if local_if else ""
-                peer_desc = f"{remote_if}" if remote_if else ""
-                arrow = f" ---({link_desc})---({peer_desc})--- [ {peer} ]"
-                lines.append(f"{prefix}{arrow}")
+    for node in topology.nodes.values():
+        if node.id not in connected:
+            lines.append(f"  [ {node.label} ]")
     return "\n".join(lines)

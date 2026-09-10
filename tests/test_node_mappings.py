@@ -2,9 +2,9 @@
 Tests for node mapping utilities.
 """
 
-from cml2gns.models.cml_model import CMLTopology, CMLNode
-from cml2gns.utils.node_mappings import map_nodes
+from cml2gns.models.cml_model import CMLNode, CMLTopology
 from cml2gns.utils.config import DEFAULT_NODE_MAPPINGS, validate_node_mappings
+from cml2gns.utils.node_mappings import map_nodes
 
 
 class TestMapNodes:
